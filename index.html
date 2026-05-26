@@ -233,32 +233,14 @@
   }
 
   .skills{ list-style: none; padding: 0; margin: 0; }
-  .skills li{ margin-bottom: 1.6mm; }
-  .skills li:last-child{ margin-bottom: 0; }
-  .skill-row{
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 8pt; color: var(--ink); margin-bottom: .8mm;
+  .skills li{
+    font-size: 8.2pt;
+    line-height: 1.3;
+    padding: 1.4mm 0;
+    border-bottom: 1px dashed rgba(0,0,0,.12);
+    color: var(--ink);
   }
-  .skill-row .lvl{
-    color: var(--ink-soft); font-variant-numeric: tabular-nums;
-    min-width: 8mm; text-align: right;
-  }
-  .bar{
-    height: 1.2mm; background: rgba(0,0,0,.08); border-radius: 2mm;
-    position: relative; overflow: hidden;
-  }
-  .bar > span{
-    display: block; height: 100%;
-    background: linear-gradient(90deg, var(--ink), #2c3a35);
-    border-radius: 2mm;
-    position: relative;
-  }
-  .bar > span::after{
-    content:""; position: absolute; right: 0; top: 50%;
-    width: 2mm; height: 2mm; border-radius: 50%;
-    background: #fff; border: 1px solid var(--ink);
-    transform: translate(50%, -50%);
-  }
+  .skills li:last-child{ border-bottom: none; }
 
   .languages{ list-style: none; padding: 0; margin: 0; font-size: 8.2pt; color: var(--ink); }
   .languages li{
@@ -511,30 +493,12 @@
       <div class="side-block">
         <h4 contenteditable="true">Technical Skills</h4>
         <ul class="skills">
-          <li>
-            <div class="skill-row"><span contenteditable="true">Brand &amp; Identity Strategy</span><span class="lvl" contenteditable="true">95%</span></div>
-            <div class="bar"><span style="width:95%"></span></div>
-          </li>
-          <li>
-            <div class="skill-row"><span contenteditable="true">Media Relations &amp; PR</span><span class="lvl" contenteditable="true">90%</span></div>
-            <div class="bar"><span style="width:90%"></span></div>
-          </li>
-          <li>
-            <div class="skill-row"><span contenteditable="true">Events &amp; Festivals</span><span class="lvl" contenteditable="true">90%</span></div>
-            <div class="bar"><span style="width:90%"></span></div>
-          </li>
-          <li>
-            <div class="skill-row"><span contenteditable="true">WordPress &amp; CMS</span><span class="lvl" contenteditable="true">80%</span></div>
-            <div class="bar"><span style="width:80%"></span></div>
-          </li>
-          <li>
-            <div class="skill-row"><span contenteditable="true">AI Content &amp; Copy</span><span class="lvl" contenteditable="true">90%</span></div>
-            <div class="bar"><span style="width:90%"></span></div>
-          </li>
-          <li>
-            <div class="skill-row"><span contenteditable="true">CapCut Video Editing</span><span class="lvl" contenteditable="true">75%</span></div>
-            <div class="bar"><span style="width:75%"></span></div>
-          </li>
+          <li contenteditable="true">Brand &amp; Identity Strategy</li>
+          <li contenteditable="true">Media Relations &amp; PR</li>
+          <li contenteditable="true">Events &amp; Festivals</li>
+          <li contenteditable="true">WordPress &amp; CMS</li>
+          <li contenteditable="true">AI Content &amp; Copy</li>
+          <li contenteditable="true">CapCut Video Editing</li>
         </ul>
       </div>
 
@@ -693,19 +657,8 @@
     }, 80);
   });
 
-  // ---- live skill bars ----
-  document.querySelectorAll('.skill-row .lvl').forEach(el => {
-    el.addEventListener('input', () => {
-      const num = parseInt(el.textContent.replace(/[^0-9]/g,''), 10);
-      if (isNaN(num)) return;
-      const pct = Math.max(0, Math.min(100, num));
-      const bar = el.closest('li').querySelector('.bar > span');
-      if (bar) bar.style.width = pct + '%';
-    });
-  });
-
   // ---- block Enter in single-line fields ----
-  document.querySelectorAll('.skill-row span, .languages span, .name span, .entry .meta span, .training-row .meta').forEach(el => {
+  document.querySelectorAll('.languages span, .name span, .entry .meta span, .training-row .meta').forEach(el => {
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
     });
