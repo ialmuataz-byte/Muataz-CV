@@ -94,8 +94,8 @@ html[lang="en"] [data-lang="en"].d-inline { display:inline; }
 .folder-stack {
   width: var(--card-w);
   position: relative;
-  /* total height = tab strip area + full beige card */
   margin-top: 50px;
+  /* height is set dynamically by JS layoutFolders() */
 }
 
 /* ── Each folder card ── */
@@ -200,23 +200,39 @@ html[lang="ar"] .tab-pos-5 .folder-tab::before { left:auto; right:16px; }
 .folder-beige .folder-body { background: var(--beige); }
 .folder-beige .folder-tab-label { color: var(--on-beige); }
 
-/* ── STACKING: each folder overlaps the one above ── */
-/* They are stacked using negative top margins so only the tab peeks out */
-.folder-peonies  { z-index:5; border-radius: var(--card-br); }
-.folder-cherry   { z-index:4; margin-top: calc(-1 * (100% - var(--overlap))); }
-.folder-carolina { z-index:3; margin-top: calc(-1 * (100% - var(--overlap))); }
-.folder-steel    { z-index:2; margin-top: calc(-1 * (100% - var(--overlap))); }
-.folder-beige    { z-index:1; margin-top: calc(-1 * (100% - var(--overlap))); cursor:default; }
+/* ── STACKING: JS-controlled via absolute positioning ── */
+/* The folder-stack has a fixed computed height set by JS */
+.folder-stack {
+  position: relative !important;
+  /* height set by JS */
+}
 
-/* Collapse all non-beige bodies to a thin visible strip */
+.folder {
+  position: absolute !important;
+  left: 0; right: 0;
+  /* top set by JS */
+  border-radius: var(--card-br);
+  transition: top .4s cubic-bezier(0.4,0,0.2,1),
+              box-shadow .3s ease,
+              opacity .3s ease;
+  background: transparent;
+}
+
+/* z-index per folder */
+.folder-peonies  { z-index:5; }
+.folder-cherry   { z-index:4; }
+.folder-carolina { z-index:3; }
+.folder-steel    { z-index:2; }
+.folder-beige    { z-index:1; cursor:default; }
+
+/* Body: collapsed by default */
 .folder-peonies  .folder-body,
 .folder-cherry   .folder-body,
 .folder-carolina .folder-body,
 .folder-steel    .folder-body {
-  height: calc(var(--overlap) - var(--tab-h));
+  height: 0;
   overflow: hidden;
-  transition: height .45s cubic-bezier(0.4,0,0.2,1),
-              border-radius .45s ease;
+  transition: height .4s cubic-bezier(0.4,0,0.2,1);
 }
 
 /* Expanded state */
@@ -225,17 +241,13 @@ html[lang="ar"] .tab-pos-5 .folder-tab::before { left:auto; right:16px; }
   overflow: visible !important;
 }
 
-/* Hide all other folders when one is expanded */
+/* Dim non-expanded when stack has an open folder */
 .folder-stack.has-expanded .folder:not(.expanded) {
-  opacity: 0.35;
+  opacity: 0.28;
   pointer-events: none;
-  transition: opacity .3s;
-}
-.folder-stack.has-expanded .folder.expanded {
-  transition: none;
 }
 .folder-stack.has-expanded .folder-beige {
-  opacity: 0.35;
+  opacity: 0.28;
 }
 
 /* ── INNER CONTENT (shown when expanded) ── */
@@ -329,6 +341,11 @@ html[lang="ar"] .fi-proj-card::after { right:auto; left:10px; content:"↙"; }
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BEIGE — About Me (always visible)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* Beige body is ALWAYS fully visible */
+.folder-beige .folder-body {
+  height: auto !important;
+  overflow: visible !important;
+}
 .about-body-inner {
   padding: 32px 36px 0;
   display: grid;
@@ -932,32 +949,117 @@ function toggleLang() {
   document.title = currentLang==='ar' ? 'المعتز الصقري' : 'Al Muataz Al Saqri';
 }
 
-/* ━━ FOLDER OPEN/CLOSE ━━ */
-var openFolders = {};
+/* ━━ FOLDER STACK ENGINE ━━ */
+// Each folder tab peeks above the one in front of it.
+// TAB_H = visible height of each folder when collapsed (tab + tiny sliver)
+var TAB_H = 52;   // px — how much of each folder shows when closed
+var folders = ['events','accounts','strategy','content']; // top to bottom (peonies→steel)
+var expandedId = null;
+
+function layoutFolders() {
+  var stack = document.getElementById('folder-stack');
+  var beige = document.getElementById('folder-about');
+  var stackW = stack.offsetWidth;
+
+  // Measure beige height (always full)
+  beige.style.position = 'absolute';
+  beige.style.top = '0';
+  beige.style.visibility = 'hidden';
+  beige.style.height = 'auto';
+  var beigeH = beige.scrollHeight;
+  beige.style.visibility = '';
+
+  if (expandedId) {
+    // One folder is open: show it fully, hide others behind
+    var expEl = document.getElementById('folder-' + expandedId);
+
+    // Position each collapsed folder at top
+    var collapsedTop = 0;
+    folders.forEach(function(id, i) {
+      var el = document.getElementById('folder-' + id);
+      if (id !== expandedId) {
+        el.style.top = collapsedTop + 'px';
+        collapsedTop += TAB_H;
+      }
+    });
+
+    // Expanded folder sits just below the other tabs
+    var otherCount = folders.length - 1;
+    var expTop = otherCount * TAB_H;
+    expEl.style.top = expTop + 'px';
+
+    // Measure expanded height
+    expEl.style.height = 'auto';
+    var expH = expEl.scrollHeight;
+
+    // Beige sits below expanded folder
+    beige.style.top = (expTop + expH) + 'px';
+
+    // Stack total height
+    stack.style.height = (expTop + expH + beigeH) + 'px';
+
+  } else {
+    // All closed: stack them so each tab peeks out
+    var tops = [];
+    var cursor = 0;
+    folders.forEach(function(id, i) {
+      tops.push(cursor);
+      cursor += TAB_H;
+    });
+
+    folders.forEach(function(id, i) {
+      var el = document.getElementById('folder-' + id);
+      el.style.top = tops[i] + 'px';
+      el.style.height = 'auto';
+    });
+
+    // Beige always fully visible after all tabs
+    var beigeTop = cursor;
+    beige.style.top = beigeTop + 'px';
+    stack.style.height = (beigeTop + beigeH) + 'px';
+  }
+}
+
 function toggleFolder(id) {
   var el = document.getElementById('folder-' + id);
   var stack = document.getElementById('folder-stack');
-  var isOpen = el.classList.contains('expanded');
-  // Close all
+  var isOpen = (expandedId === id);
+
+  // Close
   document.querySelectorAll('.folder.expanded').forEach(function(f) {
     f.classList.remove('expanded');
   });
   stack.classList.remove('has-expanded');
-  openFolders = {};
+  expandedId = null;
+
   if (!isOpen) {
     el.classList.add('expanded');
     stack.classList.add('has-expanded');
-    openFolders[id] = true;
+    expandedId = id;
   }
+
+  layoutFolders();
 }
+
 function closeFolder(id, e) {
   if (e) { e.stopPropagation(); }
   var el = document.getElementById('folder-' + id);
   var stack = document.getElementById('folder-stack');
   el.classList.remove('expanded');
   stack.classList.remove('has-expanded');
-  delete openFolders[id];
+  expandedId = null;
+  layoutFolders();
 }
+
+// Run layout on load and resize
+window.addEventListener('DOMContentLoaded', function() {
+  // Give fonts/images a moment to settle
+  setTimeout(layoutFolders, 80);
+});
+window.addEventListener('resize', function() {
+  clearTimeout(window._layoutTimer);
+  window._layoutTimer = setTimeout(layoutFolders, 60);
+});
 
 /* ━━ AUTH ━━ */
 var OWNER_PW = '558899@Mm';
